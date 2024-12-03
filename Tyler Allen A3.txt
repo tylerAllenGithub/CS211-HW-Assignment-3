@@ -1,0 +1,1431 @@
+#ifndef UNIVERSITY_H
+#define UNIVERSITY_H
+
+#include <string>
+#include <vector>
+#include <iostream>
+using namespace std;
+
+#include "Department.h"
+#include "course.h"
+#include "person.h"
+#include "student.h"
+#include "Faculty.h"
+
+class University
+{
+
+ protected:
+  vector<Department> Departments;
+  vector<student> Students;
+  vector<course> Courses;
+  vector<Faculty> Faculties;
+  static bool failure;
+  static bool success;
+
+
+ public:
+  University();//takes no parameter
+  ~University();//takes no parameter
+
+  bool CreateNewDepartment(string depName, string depLoc, long depChairId);
+  bool RemoveADepartment(long depId);//takes 1 long
+  bool CreateNewStudent(string sName, string sEmail, string sAddress, string sDateOfBirth, string sGender,
+                        int sYearOfStudy, string sMajor, long sAdvisorId);
+  bool RemoveAStudent(long sStId);//takes 1 long
+  bool CreateNewCourse(string cName, long cDepId, long cTaughtBy, int cMaxSeat);
+  bool CreateNewFaculty(string fName, string fEmail, string fAddress, string fDateOfBirth, string fGender,
+                        float fSalary, int fYearOfExp, long fDepId);
+  bool ListCoursesTaughtByFaculty(long facultyId);//takes 1 long
+  bool ListCoursesTakenByStudent(long studentId);//takes 1 long
+  bool ListFacultiesInDepartment (long departId);//takes 1 long
+  bool ListStudentsOfAFaculty(long facultyId);//takes 1 long
+  bool ListCoursesOfADepartment(long departId);//takes 1 long
+  bool AddACourseForAStudent(long courseId, long stId);//takes 2 longs
+  bool AssignDepartmentChair(long facultyId, long departId);//takes 2 longs
+  bool AssignInstructorToCourse (long facultyId, long courseId);//takes 2 longs
+
+  bool ListDepartments();//takes no parameter
+  bool ListStudents();//takes no parameter
+  bool ListCourses();//takes no parameter
+  bool ListFaculties();//takes no parameter
+
+  bool ProcessTransactionFile(string fileName);//takes 1 string
+};
+#endif
+
+/////////////////////////University.cpp
+#ifndef UNIVERSITY_C
+#define UNIVERSITY_C
+
+#include <iostream>
+using namespace std;
+#include <string>
+#include <vector>
+#include <fstream>
+#include "University.h"
+
+bool University::failure = false;
+bool University::success = true;
+//set static variables
+//----------------------------------------------------------------------------
+University::University()
+{
+
+}
+//----------------------------------------------------------------------------
+
+University::~University()
+{
+
+}
+//----------------------------------------------------------------------------
+
+bool University::CreateNewDepartment(string depName, string depLoc, long depChairId)//takes 2 string and 1 long parameters
+{
+
+  if(depChairId==0)//if department chair ID is 0 then it faails
+    {
+      cout<<"Department could not be created."<<endl;
+      return University::failure;
+    }
+
+  Department d(depName, depLoc, depChairId);//creates Department object with constructor arguments
+  Departments.push_back(d);//adds department object to Departments vector
+  return University::success;//return success
+}
+//----------------------------------------------------------------------------
+bool University::RemoveADepartment(long depId)//takes 1 long parameter
+{
+  int index=-1;//used to check for parameter's existence
+  for(int i=0;i<Departments.size();i++)//loop with vector Departments
+    {
+      if(depId==Departments[i].getID())//if it exists
+        {
+          index=i;//change index to i
+        }
+    }
+
+  if(index==-1)//if index wasn't changed
+    return University::failure;//return failure
+
+  for(int k=0; k<Faculties.size();k++)
+    {
+      if(depId==Faculties[k].getDepartID())
+        {
+          return University::failure;
+        }
+    }
+  Departments.erase(Departments.begin()+index);
+
+  return University::success;
+}
+//----------------------------------------------------------------------------
+
+bool University::CreateNewStudent(string sName, string sEmail, string sAddress, string sDateOfBirth, string sGender,
+                                  int sYearOfStudy, string sMajor, long sAdvisorId)
+{
+  int index=-1;//used to check for parameter's existence
+  if(sMajor=="0")
+    sMajor="Undeclared";
+  else
+    {
+      for(int i=0; i<Departments.size();i++)//loop with vector Departments
+        {
+          if(Departments[i].getName()==sMajor)//if major exists
+            index=i;//set index to i
+        }
+      if(index==-1)//if index wasn't changed
+        {
+          cout<<"Error, Student Could not be created."<<endl;//error message
+          return University::failure;
+        }
+    }
+  index=-1;//reset index
+  if(sAdvisorId==0)
+ {}
+  else
+{
+  for(int k=0; k<Faculties.size();k++)//loop with vector Faculties
+    {
+      if(sAdvisorId==Faculties[k].getID())//if AdvisorId exists
+        index=k;//change index to k
+    }
+  if(index==-1)//if index wasn't changed
+    {
+      cout<<"Error, Student Could not be created."<<endl;//error message
+      return University::failure;
+    }
+ }
+  student s(sName, sEmail, sAddress, sDateOfBirth, sGender,sYearOfStudy, sMajor, sAdvisorId);//create student object with constructor's arguments
+  Students.push_back(s);//add new object to Students vector
+  return University::success;
+}
+//----------------------------------------------------------------------------
+
+bool University::RemoveAStudent(long sStId)//takes 1 long parameter
+{
+  int index=-1;//used to check validity of variable
+ for(int i=0; i<Students.size();i++)//go through loop of Students vector
+    {
+      if(sStId==Students[i].getID())//if it does exist
+        {
+          index=i;//change index to i
+        }
+    }
+  if(index==-1)//if index didn't change
+    return University::failure;
+
+  while(Students[index].getCoursesTaken().size()>0)//checks to see if there is anything in courses vector in student object
+    {
+      Students[index].getCoursesTaken().pop_back();//take out all the courses
+    }
+  Students.erase(Students.begin()+index);//erases the student
+  return University::success;
+}
+//----------------------------------------------------------------------------
+
+bool University::CreateNewCourse(string cName, long cDepId, long cTaughtBy, int cMaxSeat)//takes 2 longs, 1 int, and 1 string as parameters
+{
+int index=-1;//used to check validity of variable
+  if(cTaughtBy==0)//if var is 0
+    {
+      cout<<"Error, course could not be created."<<endl;//output error
+       return University::failure;
+    }
+  else
+    {
+      for(int i=0; i<Faculties.size();i++)//loop through Faculties vector
+        {
+          if(Faculties[i].getID()==cTaughtBy)//if id's match
+            index=i;//change index to i
+        }
+      if(index==-1)//if index didn't change
+        {
+          cout<<"Error course could not be created."<<endl;//error message
+           return University::failure;
+        }
+    }
+
+  index=-1;//reset index
+  for(int k=0; k<Departments.size();k++)//cycle through Departments vector
+    {
+      if(cDepId==Departments[k].getID())//if id's match
+        index=k;//change index to k
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error course could not be created."<<endl;//error message
+       return University::failure;
+    }
+  course c(cName, cDepId, cTaughtBy, cMaxSeat);//create course object with constructo arguments
+  Courses.push_back(c);//add c object to courses vector
+  return University::success;
+
+}
+//----------------------------------------------------------------------------
+
+bool University::CreateNewFaculty(string fName, string fEmail, string fAddress, string fDateOfBirth, string fGender,
+                                  float fSalary, int fYearOfExp, long fDepId)//takes 5 strings. 1 float, 1 int, 1 long parameters
+{
+  int index=-1;//used to check validity of variable
+  for(int i=0; i<Departments.size();i++)//cycle through Departments vector
+    {
+      if(fDepId==Departments[i].getID())//if id exists
+        index=i;//change index to i
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error, faculty could not be created."<<endl;//error message
+      return University::failure;
+    }
+  Faculty f(fName,  fEmail,  fAddress,  fDateOfBirth, fGender, fSalary,  fYearOfExp, fDepId);//create faculty object
+  Faculties.push_back(f);//add f object to faculties vector
+  return University::success;
+
+}
+//----------------------------------------------------------------------------
+
+bool University::ListCoursesTaughtByFaculty(long facultyId)//takes 1 long parameter
+{
+  int index=-1;//used to check validity of variable
+  for(int i =0; i<Courses.size();i++)//cycle through Courses vector
+    {
+      if(facultyId==Courses[i].getIsTaughtBy())//if facultyID is met with teacher of class' id
+        {
+          index=i;//change index to i
+          Courses[i].print();//print course info
+        }
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error, courses could not be listed that are taught by faculty."<<endl;//error message
+       return University::failure;
+    }
+  return University::success;
+}
+//----------------------------------------------------------------------------
+
+bool University::ListCoursesTakenByStudent(long studentId)//takes 1 long parameter
+{
+  int index=-1;//used to check validity of variable
+
+  for(int i=0; i<Students.size();i++)//cycle through Students vector
+    {
+      if(studentId==Students[i].getID())//if id's match
+        index=i;//change index to i
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error, courses taken by student could not be listed."<<endl;//error message
+      return University::failure;
+    }
+  for(int i=0; i<Students[i].getCoursesTaken().size();i++)////cycle through student's course's vector
+    {
+      Students[i].getCoursesTaken()[i].print();//print student's course's vector
+    }
+  return University::success;
+}
+bool University::ListFacultiesInDepartment (long departId)//takes 1 long parameter
+{
+  int index=-1;//used to check validity of variable
+
+  for(int i=0; i<Departments.size();i++)//cycle through Departments vector
+    {
+      if(departId==Departments[i].getID())//if id's match
+        index=i;//change index to i
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error faculties in department could not be listed"<<endl;//error message
+       return University::failure;
+    }
+  for(int k=0; k<Faculties.size();k++)//cycle through Faculties vector
+    {
+      if(departId==Faculties[k].getDepartID())//if id's match
+        {
+          Faculties[k].print(); //print Faculties
+        }
+    }
+  return University::success;
+          /*    - This routine lists all the faculties (facultyId, facultyName) in a particular
+      department
+      - make sure that the departId passed to this method is a valid existing
+        department id. If this is not the case print appropriate message and return failure;
+          otherwise, return success
+  */
+
+}
+bool University::ListStudentsOfAFaculty(long facultyId)//takes 1 long parameter
+{
+  int index=-1;//used to check validity of variable
+  for(int i=0;i<Faculties.size();i++)//cycle through Faculties vector
+    {
+      if(facultyId==Faculties[i].getID())//if id's match
+        {
+          index=i;//change index to i
+        }
+    }
+
+  if(index==-1)//if index didn't change
+    {
+      cout<<"the students of a faculty could not be listed."<<endl;//error message
+       return University::failure;
+    }
+  for(int k=0;k<Students.size();k++)//cycle through Students vector
+    {
+      if(Students[k].getAdvisorID()==facultyId)//if id's match
+        cout<<Students[k].getName()<<endl;//print name
+    }
+  return University::success;
+}
+  /*
+    - This routine lists all the students (studentId and studentName) of a particular
+      faculty
+      - make sure that the facultyId passed to this method is a valid existing
+        faculty id. If this is not the case print appropriate message and return failure; otherwise,
+          return success
+
+  */
+
+
+//----------------------------------------------------------------------------
+
+bool University::ListCoursesOfADepartment(long departId)//takes one long parameter
+{
+  int index=-1;//used to check validity of variable
+  for(int i=0; i<Departments.size();i++)//cycle through Faculties vector
+    {
+      if(departId==Departments[i].getID())//if id's match
+        index=i;//change index to i
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Courses of a department could not be listed."<<endl;//error message
+        return University::failure;
+    }
+  for(int k=0; k<Courses.size();k++)//cycle through Courses vector
+    {
+      if(departId==Courses[k].getDepartID())//if id's match
+        Courses[k].print();//print courses
+    }
+  return University::success;
+  /*
+    - This routine lists all the courses offered by a particular department
+    - make sure that the departId passed to this method is a valid existing
+      department id. If this is not the case print appropriate message and return failure; otherwise,
+        return success
+  */
+}
+
+bool University::AddACourseForAStudent(long courseId, long stId)//takes 2 long parameters
+{
+  int sIndex=-1;//student index
+   int cIndex=-1;//course index
+  for(int i=0;i<Students.size();i++)//cycle through students vector
+    {
+      if(stId==Students[i].getID())//if stId exist
+        sIndex =i;//sIndex gets set to i
+    }
+  if(sIndex==-1)//if sIndex didn't change
+    {
+      cout<<"Course could not be added."<<endl;//error message
+      return University::failure;
+    }
+  for(int k=0; k<Courses.size();k++)//cycle through Courses vector
+    {
+      if(courseId==Courses[k].getCRN())//if id's match
+        cIndex=k;//change value of cIndex to k
+    }
+  if(cIndex==-1)//if cIndex didn't change
+    {
+      cout<<"Course could not be added."<<endl;//error message
+      return University::failure;
+    }
+  if(Courses[cIndex].getMaxAvailableSeats()<=Courses[cIndex].getAssignedSeats())//if assigned seats are greater than max num of seats available
+    {
+      Students[sIndex].getCoursesTaken().push_back(Courses[cIndex]);//add course to the student
+      Students[sIndex].getCoursesTaken()[Students[sIndex].getCoursesTaken().size()-1].setAssignedSeats(Courses[cIndex].getAssignedSeats()+1);
+      //^Increment assigned seats
+    }
+  return University::success;
+ /*
+    - This routine adds a course for a student
+    - When you add a course for a student, you need to ensure that there is enough seat in that class
+      Increment the number of assigned seats if you could enroll the student for this course
+      - make sure that the courseId and stId passed to this method are both valid
+        If this is not the case print appropriate message and return failure; otherwise,
+          return success
+  */
+  
+}
+ 
+//----------------------------------------------------------------------------
+
+bool University::AssignDepartmentChair(long facultyId, long departId)//takes 2 long parameters
+{
+  int index=-1;//used to check validity of variable
+  for(int i=0; i<Faculties.size();i++)//cycles through Faculties vector
+    {
+      if(Faculties[i].getID()==facultyId)//if id's match
+        index=i;//change index to value of i
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error, department chair could not be assigned."<<endl;//error message
+      return University::failure;
+    }
+  index=-1;//reset index
+  for(int k=0; k<Departments.size();k++)//cycles through Departments vector
+    {
+      if(Departments[k].getID()==departId)////if id's match
+        index=k;//change index to value of k
+    }
+  if(index==-1)//if index didn't change
+    {
+      cout<<"Error, department chair could not be assigned."<<endl;//error
+       return University::failure;
+    }
+
+  Departments[index].setChairID(facultyId);//set faculty to chair of Department
+  return University::success;
+  /*
+    - This routine assigns a chair to a department
+    - make sure that the facultyId and departId passed to this method are both valid
+      If this is not the case print appropriate message and return failure; otherwise,
+        return success
+  */
+
+}
+//----------------------------------------------------------------------------
+
+bool University::AssignInstructorToCourse (long facultyId, long courseId)//takes two long parameters
+{
+  int index=-1;//used to check validity of variable
+  for(int i=0; i<Faculties.size();i++)//cycles through Faculties vector
+      {
+        if(Faculties[i].getID()==facultyId)//if id's match
+          index=i;
+      }
+  if(index==-1)//if index didn't change
+      {
+        cout<<"Error, instructor could not be assigned to course."<<endl;//error message
+        return University::failure;
+      }
+  index=-1;//reset index
+  for(int k=0; k<Courses.size();k++)//cycles through Courses vector
+      {
+        if(Courses[k].getCRN()==courseId)////if id's match
+          index=k;
+      }
+  if(index==-1)//if index didn't change
+      {
+        cout<<"Error, instructor could not be assigned to course."<<endl;//error message
+        return University::failure;
+      }
+  index=-1;//reset index
+  for(int k=0; k<Courses.size();k++)//cycles through Courses vector
+      {
+        if(Courses[k].getCRN()==courseId)////if id's match
+          index=k;
+      }
+  if(index==-1)//if index didn't change
+      {
+        cout<<"Error, instructor could not be assigned to course."<<endl;//error message
+        return University::failure;
+      }
+
+  Courses[index].setIsTaughtBy(facultyId);//set course faculty
+    return University::success;
+  /*
+    - This routine assigns a course to an instructor to teach
+    - make sure that the courseId and facultyId passed to this method are both valid.
+      If this is not the case print appropriate message and return failure; otherwise,
+        return success
+  */
+
+}
+//----------------------------------------------------------------------------
+bool University::ListDepartments()//no parameters
+{
+  cout<<"List of Departments: "<<endl;
+  for(int i=0; i<Departments.size();i++)//cycles through Departments vector
+    {
+      Departments[i].print();//print each department
+    }
+  cout<<endl;
+  /*
+    - This method should list the department id's and department names only
+  */
+}
+//----------------------------------------------------------------------------
+
+bool University::ListStudents()
+{
+  cout<<"List of Students: "<<endl;
+  for(int i=0; i<Students.size();i++)//cycles through Students vector
+    {
+      Students[i].print();//print each student
+    }
+  cout<<endl;
+  /*
+    - This method should list the student id's and student names only
+  */
+}
+bool University::ListStudents()
+{
+  cout<<"List of Students: "<<endl;
+  for(int i=0; i<Students.size();i++)//cycles through Students vector
+    {
+      Students[i].print();//print each student
+    }
+  cout<<endl;
+  /*
+    - This method should list the student id's and student names only
+  */
+}
+//----------------------------------------------------------------------------
+bool University::ListCourses()
+{
+  cout<<"List of Courses: "<<endl;
+  for(int i=0; i<Courses.size();i++)//cycles through courses vector
+    {
+      Courses[i].print();//prints each course
+    }
+  cout<<endl;
+  /*
+    - This method should list the course id's and course names only
+  */
+}
+//----------------------------------------------------------------------------
+bool University::ListFaculties()
+{
+  cout<<"List of Faculties: "<<endl;
+  for(int i=0; i<Faculties.size();i++)//cycles through Faculties vector
+    {
+      Faculties[i].print();//print each faculty member
+    }
+  cout<<endl;
+  /*
+    - This method should list the faculty id's and faculty names only
+  */
+}
+
+//----------------------------------------------------------------------------
+bool University::ProcessTransactionFile (string fileName)
+{
+  ifstream fin;
+  string command;
+  //department class
+  string depName;
+  string depLoc;
+  long depChairID;
+  //person class (includes faulty and student)
+  long id;
+  string name;//also in course class
+  string email;
+  string address;
+  string dateOfBirth;
+  string gender;
+  //faculty class
+  float salary;
+  int yearOfExp;
+  long departID;
+  //student class
+  int yearOfStudy;
+  string major;
+  long advisorID;
+  //course class
+  long CRN;
+  int maxAvailableSeats;
+  //long departID
+  long assignedSeats;
+  long isTaughtBy;
+  //^variables for reading from file
+
+  fin.open(fileName.data());//open infile
+  if(!fin)//if couldn't open
+    {
+      cout<<"Transaction file could not be opened.";//error message
+      return University::failure;
+    }
+  fin>>command;//1st info is coomand
+  while(fin)//continue while reading infile
+    {
+      if(command=="CreateNewDepartment")//if command says CreateNewDepartment
+        {
+          fin>>depName;
+          fin>>depLoc;//store info into local variables
+          fin>>depChairID;
+          CreateNewDepartment(depName, depLoc, depChairID);//call create new department function
+        }
+      else if(command=="ListDepartments")////if command says ListDepartments
+      else if(command=="ListDepartments")////if command says ListDepartments
+        {
+          ListDepartments();//call ListDepartments()
+        }
+      else if(command=="CreateNewFaculty")//if command says CreateNewFaculty
+        {
+          fin>>name;
+          fin>>email;
+          fin>>address;
+          fin>>dateOfBirth;
+          fin>>gender;
+          fin>>salary;
+          fin>>yearOfExp;
+          fin>>departID;
+CreateNewFaculty(name, email, address, dateOfBirth, gender, salary, yearOfExp, departID);
+//call create new faculty function
+        }
+      else if(command=="ListFaculties")//if command says ListFaculties
+        {
+          ListFaculties();//call ListFaculties()
+        }
+      else if(command=="ListFacultiesinDepartment")//if command says ListFacultiesinDepartment
+        {
+  fin>>departID;
+          ListFacultiesInDepartment(departID);//call ListFacultiesinDepartment with departID as an argument
+        }
+      else if(command=="CreateNewStudent")//if command says CreateNewStudent
+        {
+          fin>>name;
+          fin>>email;
+          fin>>address;
+          fin>>dateOfBirth;
+          fin>>gender;
+          fin>>yearOfStudy;
+          fin>>major;
+          fin>>advisorID;
+CreateNewStudent(name, email, address, dateOfBirth, gender, yearOfStudy, major, advisorID);
+//call CreateNewStudent with ^arguments
+        }
+      else if(command=="ListStudents")//if command says ListStudents
+        {
+          ListStudents();//call ListStudents function
+        }
+      else if(command=="ListStudentsOfAFaculty")//if command says ListStudentsOfAFaculty
+        {
+          fin>>id;
+          ListStudentsOfAFaculty(id);//call ListStudentsOfAFaculty with id as an argument
+        }
+      else if(command=="CreateNewCourse")//if command says CreateNewCourse
+        {
+          fin>>name;
+          fin>>departID;
+          fin>>isTaughtBy;
+          fin>>maxAvailableSeats;
+CreateNewCourse(name, departID, isTaughtBy, maxAvailableSeats);
+//calls CreateNewCourse
+        }
+      else if(command=="ListCourses")//if command says ListCourses
+        {
+          ListCourses();//calls ListCourses
+        }
+      else if(command=="ListCoursesTaughtByFaculty")//if command says ListCoursesTaughtByFaculty
+        {
+          fin>>id;
+          ListCoursesTaughtByFaculty(id);//call ListCoursesTaughtByFaculty
+        }
+      else if(command=="ListCoursesOfADepartment")//if command says ListCoursesOfADepartment
+        {
+          fin>>departID;
+          ListCoursesOfADepartment(departID);//call ListCoursesOfADepartment
+        }
+      else if(command=="AddACourseForAStudent")//if command says AddACourseForAStudent
+        {
+          fin>>CRN;
+          fin>>id;
+          AddACourseForAStudent(CRN, id);
+        }
+      else if(command=="ListCoursesTakenByStudent")//if command says ListCoursesTakenByStudent
+        {
+          fin>>id;
+          ListCoursesTakenByStudent(id);
+        }
+      else if(command=="AssignDepartmentChair")//if command says AssignDepartmentChair
+        {
+          fin>>id;
+          fin>>departID;
+          AssignDepartmentChair(id, departID);
+        }
+      else if(command=="AssignInstructorToCourse")//if command says AssignInstructorToCourse
+        {
+          fin>>id;
+          fin>>CRN;
+          AssignInstructorToCourse(id, CRN);
+        }
+      else if(command=="ListCoursesTaughtByFaculty")//if command says ListCoursesTaughtByFaculty
+        {
+          fin>>id;
+          ListCoursesTaughtByFaculty(id);
+        }
+      fin>>command;//must store info for reiterations of loop
+    }
+  return University::success;
+  /*
+    - open the transaction file and process it one by one
+    - If the file could not be opened, print appropriate message and return failure;
+      otherwise, return success
+  */
+
+}
+//----------------------------------------------------------------------------
+
+int main()
+{
+  University csusm;//create University object
+  csusm.ProcessTransactionFile("TransactionFile.txt");//call process transactio\
+n file function
+ return 0;
+  }
+//----------------------------------------------------------------------------
+
+#endif
+////////////////////////Department.h
+#ifndef DEPARTMENT_H
+#define DEPARTMENT_H
+
+#include <string>
+//includes
+class Department
+{
+ private:
+  long id;
+  string name;
+  string location;
+  long chairID;
+  static long nextDepartID;
+ public:
+  Department();//default constructor
+  Department(string depName, string depLoc, long depChairID);//constructor with 3 parameters
+  void setID(long id);//Takes long parameter
+  long getID();//takes no parameter
+  void setName(string name);//takes string parameter
+  string getName();//takes no parameter
+  void setLocation(string location);//takes string parameter
+  string getLocation();//takes no parameter
+  void setChairID(long chairID);//takes long parameter
+  long getChairID();//takes no parameter
+  void print() const;//takes no parameter
+};
+#endif
+/////////////Department.C
+#ifndef DEPARTMENT_C
+#define DEPARTMENT_C
+
+#include <iostream>
+using namespace std;
+#include "Department.h"
+
+long Department::nextDepartID=100;
+//initialize static variables
+Department::Department()//takes no parameters
+{
+  id=nextDepartID++;//increment nextDepartID
+  name=" ";
+  location=" ";
+  chairID=0;//initialize all other variables to default
+}
+
+Department::Department(string depName, string depLoc,long depChairID)//takes 2 strings and 1 long
+{
+  name=depName;
+  location=depLoc;
+  chairID=depChairID;
+  id=nextDepartID++;
+  //assign global variables to constructor arguments
+}
+
+void Department::setID(long id)//takes 1 long
+{
+  this->id=id;//sets this variable to argument
+}
+
+long Department::getID()//takes no parameters
+{
+  return id;
+}
+
+void Department::setName(string name)//takes 1 string
+{
+  this->name=name;//sets this variable to argument
+}
+
+string Department::getName()//takes no parameters
+{
+  return name;
+}
+
+void Department::setLocation(string location)//takes no parameters
+{
+  this->location=location;//sets this variable to argument
+}
+
+string Department::getLocation()//takes no parameters
+{
+  return location;
+}
+
+void Department::setChairID(long chairID)//takes 1 long
+{
+  this->chairID=chairID;//sets this variable to argument
+}
+
+long Department::getChairID()//takes no parameters
+{
+  return chairID;
+}
+
+void Department::print() const//takes no parameters
+{
+  cout<<"The Department ID is: "<<id<<endl;
+  cout<<"The Department Name is: "<<name<<endl;
+  /*  cout<<"The Department Location is: "<<location<<endl;
+  cout<<"The Department Chair ID is: "<<chairID<<endl;
+  cout<<"The Next Department ID is: "<<nextDepartID<<endl;*/
+  cout<<endl;
+}
+#endif
+
+//////////////////////course.h
+#ifndef COURSE_H
+#define COURSE_H
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+class course
+{
+ private:
+  long CRN;
+  int maxAvailableSeats;
+  string name;
+  long departID;
+  long assignedSeats;
+  long isTaughtBy;
+  static long nextCRN;
+
+ public:
+  course();//takes no parameters
+  course(string n, long depID, long taught, int maxSeats);//takes 2 longs, 1 string, 1 int
+  void setCRN(long CRN);//takes 1 long
+  long getCRN();//takes no parameters
+  void setMaxAvailableSeats(int maxAvailableSeats);//takes 1 int
+  int getMaxAvailableSeats();//takes no parameters
+  void setName(string name);//takes 1 string
+  string getName();//takes no parameters
+  void setDepartID(long departID);//takes 1 long
+  long getDepartID();//takes no parameters
+  void setAssignedSeats(long assignedSeats);
+  long getAssignedSeats();//takes no parameters
+  void setIsTaughtBy(long isTaughtBy);
+  long getIsTaughtBy();//takes no parameters
+  long getNextCRN();//takes no parameters
+  void print() const;//takes no parameters
+
+};
+#endif
+////////////////////////course.C
+#ifndef COURSE_C
+#define COURSE_C
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+#include "course.h"
+
+long course::nextCRN=200;
+//initialize static variable
+course::course()//takes no parameters
+{//initialize
+  CRN=nextCRN++;
+  maxAvailableSeats=0;
+  name=" ";
+  departID=0;
+  assignedSeats=0;
+  isTaughtBy=0;
+}
+
+course::course(string n, long depID, long taught, int maxSeats)
+{
+  name=n;
+  departID=depID;
+  isTaughtBy=taught;
+  maxAvailableSeats=maxSeats;
+  CRN=nextCRN++;
+  assignedSeats=0;
+  //assign global variables to constructor arguments
+}
+
+void course::setCRN(long CRN)//takes 1 long
+{
+  this->CRN=CRN;//sets this variable to argument
+}
+
+long course::getCRN()//takes no parameters
+{
+  return CRN;
+}
+
+void course::setMaxAvailableSeats(int maxAvailableSeats)
+{
+  this->maxAvailableSeats=maxAvailableSeats;//sets this variable to argument
+}
+
+int course::getMaxAvailableSeats()//takes no parameters
+{
+  return maxAvailableSeats;
+}
+
+void course::setName(string name)//takes 1 string
+{
+  this->name=name;//sets this variable to argument
+}
+
+string course::getName()//takes no parameters
+{
+  return name;
+}
+
+void course::setDepartID(long departID)//takes 1 long
+{
+  this->departID=departID;//sets this variable to argument
+}
+
+long course::getDepartID()//takes no parameters
+{
+return departID;
+}
+
+void course::setAssignedSeats(long assignedSeats)//takes 1 long
+{
+  this->assignedSeats=assignedSeats;//sets this variable to argument
+}
+
+long course::getAssignedSeats()//takes no parameters
+{
+return assignedSeats;
+}
+
+void course::setIsTaughtBy(long isTaughtBy)//takes 1 long
+{
+  this->isTaughtBy=isTaughtBy;//sets this variable to argument
+}
+
+long course::getIsTaughtBy()//takes no parameters
+{
+return isTaughtBy;
+}
+
+long course::getNextCRN()//takes no parameters
+{
+  return nextCRN;
+}
+
+void course::print() const//takes no parameters
+{
+  cout<<"The CRN is: "<<CRN<<endl;
+  cout<<"The Course Name is: "<<name<<endl;
+  cout<<endl;
+}
+#endif
+/////////////////////////////person.h
+#ifndef PERSON_H
+#define PERSON_H
+
+#include <string>
+#include <iostream>
+using namespace std;
+
+
+class person
+{
+ protected:
+  long id;
+  string name;
+  string email;
+  string address;
+  string dateOfBirth;
+  string gender;
+
+ public:
+  person();//takes no parameters
+  person(long id, string name, string email, string address, string dateOfBirth, string gender);
+  void setID(long id);//takes 1 long
+  long getID() const;//takes no parameters
+  void setName(string name);//takes 1 string
+  string getName() const;//takes no parameters
+  void setEmail(string email);//takes 1 string
+  string getEmail() const;//takes no parameters
+  void setAddress(string address);//takes 1 string
+  string getAddress() const;//takes no parameters
+  void setDateOfBirth(string dateOfBirth);//takes 1 string
+  string getDateOfBirth() const;//takes no parameters
+  void setGender(string gender);//takes 1 string
+  string getGender() const;//takes no parameters
+  void print() const;//takes no parameters
+};
+#endif
+////////////////////////////person.C
+#ifndef PERSON_C
+#define PERSON_C
+
+#include <string>
+#include <iostream>
+using namespace std;
+
+#include "person.h"
+
+person::person()//takes no parameters
+{
+  id=0;
+  name=" ";
+  email=" ";
+  address=" ";
+  dateOfBirth=" ";
+  gender=" ";
+}
+
+person::person(long id, string name, string email, string address, string dateOfBirth, string gender)
+{
+  this->id=id;
+  this->name=name;
+  this->email=email;
+  this->address=address;
+  this->dateOfBirth=dateOfBirth;
+  this->gender=gender;
+  //assign global variables to constructor arguments
+}
+void person::setID(long id)//takes 1 long
+{
+  this->id=id;//sets this variable to argument
+}
+
+long person::getID() const//takes no parameters
+{
+  return id;
+}
+void person::setName(string name)//takes 1 string
+{
+  this->name=name;//sets this variable to argument
+}
+
+string person::getName() const//takes no parameters
+{
+  return name;
+}
+
+void person::setEmail(string email)//takes 1 string
+{
+  this->email=email;//sets this variable to argument
+}
+
+string person::getEmail() const//takes no parameters
+{
+  return email;
+}
+
+void person::setAddress(string address)//takes 1 string
+{
+  this->address=address;//sets this variable to argument
+}
+string person::getAddress() const//takes no parameters
+{
+  return address;
+}
+
+void person::setDateOfBirth(string dateOfBirth)//takes 1 string
+{
+  this->dateOfBirth=dateOfBirth;//sets this variable to argument
+}
+
+string person::getDateOfBirth() const//takes no parameters
+{
+  return dateOfBirth;
+}
+
+void person::setGender(string gender)//takes 1 string
+{
+  this->gender=gender;//sets this variable to argument
+}
+
+string person::getGender() const//takes no parameters
+{
+  return gender;
+}
+
+void person::print() const//takes no parameters
+{
+  cout<<"Name: "<<name<<endl;
+  cout<<"ID: "<<id<<endl;
+  cout<<endl;
+}
+#endif
+////////////////////////////student.h
+#ifndef STUDENT_H
+#define STUDENT_H
+
+#include <iostream>
+using namespace std;
+#include <string>
+#include <vector>
+#include "course.h"
+#include "person.h"
+
+class student : public person
+{
+ private:
+  int yearOfStudy;
+  string major;
+  long advisorID;
+  vector<course> coursesTaken;
+  static long nextStID;
+ public:
+  student();//takes no parameters
+  student(string name, string email, string address, string dateOfBirth, string gender, int yearOfStudy, string major, long advisorID);
+  void setYearOfStudy(int yearOfStudy);//takes 1 int
+  int getYearOfStudy();//takes no parameters
+  void setMajor(string major);//takes 1 string
+  string getMajor();//takes no parameters
+  void setAdvisorID(long advisorID);//takes 1 long
+  long getAdvisorID();//takes no parameters
+  void setCoursesTaken(vector<course> coursesTaken);//takes a vector as parameters
+  vector<course> getCoursesTaken();//takes no parameters
+  void printCoursesTaken() const;//takes no parameters
+  void print() const;//takes no parameters
+};
+#endif
+/////////////////////student.C
+#ifndef STUDENT_C
+#define STUDENT_C
+
+#include <iostream>
+using namespace std;
+#include <string>
+#include <vector>
+#include "course.h"
+#include "person.h"
+#include "student.h"
+
+long student::nextStID=500;
+
+student::student()//takes no parameters
+{
+  yearOfStudy=0;
+  major=" ";
+  advisorID=0;
+ id=nextStID++;
+}
+
+student::student(string name, string email, string address, string dateOfBirth, string gender, int yearOfStudy, string major, long advisorID)
+{
+  this->name=name;
+  this->email=email;
+  this->address=address;
+  this->dateOfBirth=dateOfBirth;
+  this->gender=gender;
+  this->yearOfStudy=yearOfStudy;
+  this->major=major;
+  this->advisorID=advisorID;
+  id=nextStID++;
+  //assign global variables to constructor arguments
+}
+
+void student::setYearOfStudy(int yearOfStudy)
+{
+  this->yearOfStudy=yearOfStudy;//sets this variable to argument
+}
+
+int student::getYearOfStudy()//takes no parameters
+{
+  return yearOfStudy;//sets this variable to argument
+}
+
+void student::setMajor(string major)//takes no parameters
+{
+  this->major=major;//sets this variable to argument
+}
+
+string student::getMajor()//takes no parameters
+{
+  return major;
+}
+
+void student::setAdvisorID(long advisorID)//takes 1 long
+{
+  this->advisorID=advisorID;//sets this variable to argument
+}
+
+long student::getAdvisorID()//takes no parameters
+{
+  return advisorID;
+}
+
+void student::setCoursesTaken(vector<course> coursesTaken)
+{
+  if(this->coursesTaken.size()>0)
+    {
+      for(int i=0; i<coursesTaken.size();i++)
+        this->coursesTaken.pop_back();
+    }
+  for(int i=0; i<coursesTaken.size();i++)
+    this->coursesTaken.push_back(coursesTaken[i]);
+
+}
+
+vector<course> student::getCoursesTaken()//takes no parameters
+{
+  return coursesTaken;
+}
+void student::printCoursesTaken() const//takes no parameters
+{
+   for(int i=0; i<coursesTaken.size();i++)
+    {
+      coursesTaken[i].print();
+    }
+
+}
+void student::print() const//takes no parameters
+{
+   person::print();
+}
+#endif
+////////////////////////Facult.h
+#ifndef FACULTY_H
+#define FACULTY_H
+
+#include <iostream>
+using namespace std;
+#include <string>
+#include "person.h"
+
+class Faculty : public person
+{
+ private:
+  float salary;
+  int yearOfExp;
+  long departID;
+  static long nextFacultyID;
+ public:
+  Faculty();//takes no parameters
+  Faculty(string name, string email, string address, string dateOfBirth, string gender, float salary, int yearOfExp, long departID);
+  void setSalary(float salary);
+  float getSalary();//takes no parameters
+  void setYearOfExp(int yearOfExp);
+  int getYearOfExp();//takes no parameters
+  void setDepartID(long departID);//takes 1 long
+  long getDepartID();//takes no parameters
+  long getNextFacultyID();//takes no parameters
+  void print() const;//takes no parameters
+};
+#endif
+//////////////////////////Faculty.C
+#ifndef FACULTY_C
+#define FACULTY_C
+
+#include <iostream>
+using namespace std;
+#include <string>
+#include "Faculty.h"
+
+long Faculty::nextFacultyID=600;
+
+Faculty::Faculty()//takes no parameters
+{
+  salary=0.0;
+  yearOfExp=0;
+  departID=0;
+  id=nextFacultyID++;
+}
+
+Faculty::Faculty(string name, string email, string address, string dateOfBirth, string gender, float salary, int yearOfExp, long departID)
+{
+  this->name=name;
+  this->email=email;
+  this->address=address;
+  this->dateOfBirth=dateOfBirth;
+  this->gender=gender;
+  this->salary=salary;
+  this->yearOfExp=yearOfExp;
+  this->departID=departID;
+  id=nextFacultyID++;
+  //assign global variables to constructor arguments
+}
+void Faculty::setSalary(float salary)
+{
+  this->salary=salary;//sets this variable to argument
+}
+
+float Faculty::getSalary()//takes no parameters
+{
+  return salary;
+}
+
+void Faculty::setYearOfExp(int yearOfExp)
+{
+  this->yearOfExp=yearOfExp;//sets this variable to argument
+}
+
+int Faculty::getYearOfExp()//takes no parameters
+{
+  return yearOfExp;
+}
+
+void Faculty::setDepartID(long departID)//takes 1 long
+{
+  this->departID=departID;//sets this variable to argument
+}
+
+long Faculty::getDepartID()//takes no parameters
+{
+  return departID;
+}
+
+long Faculty::getNextFacultyID()//takes no parameters
+{
+  return nextFacultyID;
+}
+
+void Faculty::print() const//takes no parameters
+{
+  person::print();
+}
+#endif
+////////////////////////Outputs
+Department could not be created.
+Department could not be created.
+Department could not be created.
+Department could not be created.
+List of Departments:
+The Department ID is: 100
+The Department Name is: Biology
+
+
+Error, faculty could not be created.
+Error, faculty could not be created.
+Error, faculty could not be created.
+Error, faculty could not be created.
+Error, faculty could not be created.
+Error, faculty could not be created.
+Error, faculty could not be created.
+List of Faculties:
+Name: John_Smith
+ID: 600
+
+Name: Bob_Anderson
+ID: 601
+
+Name: Sue_Clark
+ID: 602
+
+
+Error, Student Could not be created.
+Error, Student Could not be created.
+Error, Student Could not be created.
+List of Students:
+
+the students of a faculty could not be listed.
+Error, course could not be created.
+Error course could not be created.
+Error course could not be created.
+Error, course could not be created.
+Error course could not be created.
+Error course could not be created.
+Error course could not be created.
+Error course could not be created.
+List of Courses:
+The CRN is: 200
+The Course Name is: CS111
+
+The CRN is: 201
+The Course Name is: CS211
+
+
+Error, courses could not be listed that are taught by faculty.
+Error, courses could not be listed that are taught by faculty.
+The CRN is: 200
+The Course Name is: CS111
+
+The CRN is: 201
+The Course Name is: CS211
+
+Courses of a department could not be listed.
+Courses of a department could not be listed.
+Courses of a department could not be listed.
+Course could not be added.
+Course could not be added.
+Course could not be added.
+Course could not be added.
+Error, courses taken by student could not be listed.
+Error, courses taken by student could not be listed.
+Error, courses taken by student could not be listed.
+Error, department chair could not be assigned.
+Error, department chair could not be assigned.
+Error, instructor could not be assigned to course.
+The CRN is: 200
+The Course Name is: CS111
+
+The CRN is: 201
+The Course Name is: CS211
